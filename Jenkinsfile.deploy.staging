@@ -1,0 +1,40 @@
+#!/usr/bin/env groovy
+
+pipeline {
+  agent { label 'master' }
+  environment {
+    tag_ver = sh (
+      script: "git tag -l --sort=v:refname | tail -1",
+      returnStdout: true
+      ).trim()
+      cluster_name = "${params.cluster_name}"
+      project_name = "${params.project_name}"
+      namespace = "${params.namespace}"
+      service_name = "${params.service_name}"
+      file_id = "${params.file_id}"
+    }
+    stages {
+      stage('load env') {
+        steps {
+           configFileProvider([configFile(fileId: "${file_id}", variable: 'ENV_FILE')]) {
+           echo " =========== ^^^^^^^^^^^^ Reading config from pipeline script "
+           sh "rm -rf .env"
+           sh "cp ${env.ENV_FILE} .env"
+          }
+        }
+      }
+      stage('cluster prepare') {
+        steps {
+          sh "kubectl create -n ${namespace} --cluster gke_${project_name}_asia-southeast1-a_${cluster_name} secret generic ${service_name}-secret --from-env-file=.env --dry-run -o yaml | kubectl apply -n ${namespace} --cluster gke_${project_name}_asia-southeast1-a_${cluster_name} -f -"
+          sh "sed -i \'s,s-heimdall-mongo,${service_name},g\' s-heimdall-mongo.yaml"
+          sh "sed -i \'s,mongo-data,${service_name}-mongo-data,g\' s-heimdall-mongo.yaml"
+          sh "sed -i \'s,${service_name}:latest,s-heimdall-mongo:latest,g\' s-heimdall-mongo.yaml"
+        }
+      }
+      stage('deploy') {
+        steps {
+          sh "kubectl apply -f s-heimdall-mongo.yaml -n ${namespace} --cluster gke_${project_name}_asia-southeast1-a_${cluster_name}"
+        }
+      }
+    }
+  }

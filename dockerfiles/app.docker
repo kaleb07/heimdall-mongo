@@ -1,0 +1,5 @@
+FROM mongo:4.0.4-xenial
+
+COPY init/* /docker-entrypoint-initdb.d/
+
+EXPOSE 27017

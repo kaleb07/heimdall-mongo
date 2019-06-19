@@ -1,0 +1,35 @@
+version: '3.1'
+
+services:
+  d-heimdall-mongo:
+    image: gcr.io/tanigroup-2018/d-heimdall-mongo:latest
+    build:
+      context: .
+      dockerfile: dockerfiles/app.docker.dev
+      args:
+        - MONGO_ROOT_DB=$MONGO_ROOT_DB
+        - MONGO_ROOT_USERNAME=$MONGO_ROOT_USERNAME
+        - MONGO_ROOT_PASSWORD=$MONGO_ROOT_PASSWORD
+        - MONGO_HOST=$MONGO_HOST
+        - MONGO_PORT=$MONGO_PORT
+        - HM_MONGO_DB=$HM_MONGO_DB
+        - HM_MONGO_USER=$HM_MONGO_USER
+        - HM_MONGO_PASS=$HM_MONGO_PASS
+    env_file: .env
+    container_name: "d-heimdall-mongo"
+    working_dir: /usr/src/app
+    volumes:
+      - mongo_data:/data/db
+      - ./init/:/docker-entrypoint-initdb.d/
+    ports:
+      - "27018:27017"
+    networks:
+      - default
+      - bridge-network
+networks:
+  default:
+    driver: bridge
+  bridge-network:
+    external: true
+volumes:
+  mongo_data:

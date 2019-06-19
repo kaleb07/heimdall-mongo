@@ -1,0 +1,27 @@
+version: "2"
+
+services:
+  s-heimdall-mongo:
+    image: gcr.io/tanigroup-2018/s-heimdall-mongo:latest
+    build:
+      context: .
+      dockerfile: dockerfiles/app.docker
+      args:
+        - MONGO_ROOT_DB=$MONGO_ROOT_DB
+        - MONGO_ROOT_USERNAME=$MONGO_ROOT_USERNAME
+        - MONGO_ROOT_PASSWORD=$MONGO_ROOT_PASSWORD
+        - MONGO_HOST=$MONGO_HOST
+        - MONGO_PORT=$MONGO_PORT
+        - HM_MONGO_DB=$HM_MONGO_DB
+        - HM_MONGO_USER=$HM_MONGO_USER
+        - HM_MONGO_PASS=$HM_MONGO_PASS
+    env_file: .env
+    container_name: "s-heimdall-mongo"
+    working_dir: /usr/src/app
+    volumes:
+      - mongo_data:/data/db
+      - ./init/:/docker-entrypoint-initdb.d/
+    ports:
+      - "27017:27017"
+volumes:
+  mongo_data:

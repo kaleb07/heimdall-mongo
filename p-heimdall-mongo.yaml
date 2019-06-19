@@ -1,0 +1,88 @@
+apiVersion: networking.istio.io/v1alpha3
+kind: DestinationRule
+metadata:
+  name: p-heimdall-mongo-dr
+spec:
+  host: p-heimdall-mongo
+  trafficPolicy:
+    tls:
+      mode: ISTIO_MUTUAL
+---
+apiVersion: v1
+kind: Service
+metadata:
+  creationTimestamp: null
+  labels:
+    app: p-heimdall-mongo
+  name: p-heimdall-mongo
+spec:
+  type: ClusterIP
+  ports:
+    - name: mongo
+      port: 27017
+      protocol: TCP
+      targetPort: 27017
+  selector:
+    app: p-heimdall-mongo
+status:
+  loadBalancer: {}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  creationTimestamp: null
+  labels:
+    app: mongo-data
+  name: mongo-data
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+status: {}
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  creationTimestamp: null
+  labels:
+    app: p-heimdall-mongo
+    version: latest
+  name: p-heimdall-mongo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: p-heimdall-mongo
+      version: latest
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 100%
+  template:
+    metadata:
+      labels:
+        app: p-heimdall-mongo
+        version: latest
+    spec:
+      containers:
+        - image: "gcr.io/tanigroup-2018/p-heimdall-mongo:latest"
+          imagePullPolicy: Always
+          name: p-heimdall-mongo
+          ports:
+            - containerPort: 27017
+              protocol: TCP
+          envFrom:
+          - secretRef:
+              name: p-heimdall-mongo-secret
+          resources: {}
+          volumeMounts:
+          - mountPath: /data/db
+            name: mongo-data
+      restartPolicy: Always
+      volumes:
+      - name: mongo-data
+        persistentVolumeClaim:
+          claimName: mongo-data
+status: {}
